@@ -3,34 +3,72 @@
  * Converts an array of geometries to a collection (MultiPoint, MultiLineString,
  * MultiPolygon, GeometryCollection).
  */
-var geometriesToCollection = function(geometries){
-    // count by geometry type
-    var counts = {};
-    geometries.forEach(function(geometry){
-        if ( typeof counts[geometry.type] === 'undefined' ){
-            counts[geometry.type] = 1 ;
-        }else{
-            counts[geometry.type]++ ;
-        }
-    }) ;
+var geometriesToCollection = function (geometries) {
 
-    var geometryTypes = Object.keys(counts) ;
-    if ( geometryTypes.length > 1 ){
+
+    // regrouper les geometries par type
+    var geometriesPerType = {};
+    geometries.forEach(function (geometry) {
+        if (!geometriesPerType[geometry.type]) {
+            geometriesPerType[geometry.type] = [];
+        }
+        geometriesPerType[geometry.type].push(geometry);
+    });
+
+    //// regrouper les multipoints, multilinestring et multipolygon
+    // for (var type in geometriesPerType) {
+
+    //     if (type.includes('Multi')) {
+
+    //         var coordinates = [];
+    //         geometriesPerType[type].forEach(function (geometry) {
+    //             coordinates.push(geometry.coordinates[0]);
+    //         });
+
+    //         var multiGeometry = {
+    //             type: type,
+    //             coordinates: coordinates
+    //         };
+    //         geometriesPerType[type] = [multiGeometry];
+    //     }
+
+    // }
+
+    // S'il y a plusieurs types differents retourner une geometrieCollection
+    if (Object.keys(geometriesPerType).length > 1) {
+
+        var geoms = [];
+        for (var type in geometriesPerType) {
+            for (var i in geometriesPerType[type]) {
+                geoms.push(geometriesPerType[type][i]);
+            }
+        }
+
         return {
             "type": "GeometryCollection",
-            "geometries": geometries
-        } ;
-    }else{
-        var multiType = "Multi"+Object.keys(counts)[0] ;
-        var coordinates = [];
-        geometries.forEach(function(geometry){
-            coordinates.push(geometry.coordinates);
-        }) ;
-        return {
-            "type": multiType,
-            "coordinates": coordinates
-        } ;
-    }
-} ;
+            "geometries": geoms
+        };
+    } else {
 
-module.exports = geometriesToCollection ;
+        for (var type in geometriesPerType) {
+            // s'il y a plusieurs geometries par type retourner une geometrieCollection
+            if (geometriesPerType[type].length > 1) {
+                var geoms = [];
+                for (var i in geometriesPerType[type]) {
+                    geoms.push(geometriesPerType[type][i]);
+                }
+                return {
+                    "type": "GeometryCollection",
+                    "geometries": geoms
+                };
+
+            // sinon renvoyer la geometrie de la feature
+            } else {
+                return geometriesPerType[type][0]
+            }
+        }
+
+    }
+};
+
+module.exports = geometriesToCollection;

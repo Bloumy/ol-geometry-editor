@@ -14,9 +14,7 @@ var featureCollectionToGeometry = function(featureCollection){
         return null ;
     }
 
-    if ( geometries.length == 1 ){
-        return geometries[0];
-    }else{
+    if ( geometries.length >= 1 ){
         return geometriesToCollection(geometries) ;
     }
 } ;
