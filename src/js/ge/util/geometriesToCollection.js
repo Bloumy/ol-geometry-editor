@@ -15,24 +15,24 @@ var geometriesToCollection = function (geometries) {
         geometriesPerType[geometry.type].push(geometry);
     });
 
-    //// regrouper les multipoints, multilinestring et multipolygon
-    // for (var type in geometriesPerType) {
+    // regrouper les multipoints, multilinestring et multipolygon
+    for (var type in geometriesPerType) {
 
-    //     if (type.includes('Multi')) {
+        if (type.includes('Multi')) {
 
-    //         var coordinates = [];
-    //         geometriesPerType[type].forEach(function (geometry) {
-    //             coordinates.push(geometry.coordinates[0]);
-    //         });
+            var coordinates = [];
+            geometriesPerType[type].forEach(function (geometry) {
+                coordinates.push(geometry.coordinates[0]);
+            });
 
-    //         var multiGeometry = {
-    //             type: type,
-    //             coordinates: coordinates
-    //         };
-    //         geometriesPerType[type] = [multiGeometry];
-    //     }
+            var multiGeometry = {
+                type: type,
+                coordinates: coordinates
+            };
+            geometriesPerType[type] = [multiGeometry];
+        }
 
-    // }
+    }
 
     // S'il y a plusieurs types differents retourner une geometrieCollection
     if (Object.keys(geometriesPerType).length > 1) {
