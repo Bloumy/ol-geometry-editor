@@ -8,6 +8,12 @@
     position: static;
 }
 
+
+.ol-draw-tools .ol-control button{
+    width: 25px;
+    height: 25px;
+}
+
 .ol-draw-tools .ol-control button,
 .ol-draw-tools button.ol-control:focus{
     background-color: #fff;
@@ -42,7 +48,7 @@
 .ol-draw-tools .ol-control.ol-draw-linestring button,
 .ol-draw-tools .ol-control.ol-draw-multilinestring button {
     display: block;
-    background-position: -2px -1px;
+    background-position: -2px -2px;
     background-repeat: no-repeat;
 }
 
@@ -51,7 +57,7 @@
 .ol-draw-tools .ol-control.ol-draw-rectangle button,
 .ol-draw-tools .ol-control.ol-draw-multirectangle button {
     display: block;
-    background-position: -64px -4px;
+    background-position: -63px -3px;
     background-repeat: no-repeat;
 }
 
@@ -64,7 +70,7 @@
 
 .ol-draw-tools .ol-control.ol-edit button {
     display: block;
-    background-position: -153px -2px;
+    background-position: -152px -2px;
     background-repeat: no-repeat;
 }
 
