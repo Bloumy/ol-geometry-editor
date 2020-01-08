@@ -14,7 +14,7 @@ var getGeometryByFeaturesCollection = require('../util/getGeometryByFeaturesColl
  * @constructor
  * @extends {ol.control.Control}
  *
- * @param {object} options
+ * @param {Object} options
  * @param {jQuery} options.targetElement
  * @param {jQuery} options.geometryType
  * @param {String} options.layer
@@ -111,7 +111,7 @@ ShowGeometryControl.prototype.updateGeometriesOnMap = function () {
 /**
  * Ajoute des features dans une feature collection à partir d'un tableau de géométries GeoJson
  *
- * @param {array} geometries - simple geometries
+ * @param {Array} geometries - simple geometries
  */
 ShowGeometryControl.prototype.setGeometriesOnMap = function (geometries) {
     this.layer.getSource().clear();

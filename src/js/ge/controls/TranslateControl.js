@@ -5,7 +5,7 @@
  * @constructor
  * @extends {ol.control.Control}
  * 
- * @param {object} options
+ * @param {Object} options
  *
  */
 var TranslateControl = function (options) {

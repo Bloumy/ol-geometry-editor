@@ -7,7 +7,7 @@ var RemoveInteraction = require('../interactions/RemoveInteraction');
  * @constructor
  * @extends {ol.control.Control}
  * 
- * @param {object} options
+ * @param {Object} options
  * @param {String} options.type le type d'élément dessiné ('Text', 'Point', 'LineString' ou 'Polygon')
  *
  */

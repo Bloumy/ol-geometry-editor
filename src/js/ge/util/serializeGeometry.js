@@ -3,7 +3,7 @@ var extent = require('turf-extent');
 /**
  * SerializeGeometry 
  * 
- * @param {object} geometry
+ * @param {Object} geometry
  * @param {string} geometryType
  * 
  * @return {string}

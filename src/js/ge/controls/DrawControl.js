@@ -4,7 +4,7 @@
  * @constructor
  * @extends {ol.control.Control}
  *
- * @param {object} options
+ * @param {Object} options
  * @param {String} options.type le type d'élément dessiné ('Point', 'LineString', 'Polygon' ou 'Rectangle')
  *
  */

@@ -4,12 +4,12 @@ var featuresCollectionToGeometryCollection = require('./featuresCollectionToGeom
  * getGeometryByFeaturesCollection
  *
  * @param {ol.Collection}   featuresCollection
- * @param {object}          options
+ * @param {Object}          options
  * @param {string}          options.mapProjection
  * @param {string}          options.dataProjection
  * @param {int}             options.precision
  * 
- * @return {object}
+ * @return {Object}
  */
 var getGeometryByFeaturesCollection = function (featuresCollection, options) {
 

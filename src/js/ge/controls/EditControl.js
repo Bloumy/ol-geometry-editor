@@ -8,7 +8,7 @@ var ModifySquareInteraction = require('../interactions/ModifySquareInteraction')
  * @constructor
  * @extends {ol.control.Control}
  *
- * @param {object} options
+ * @param {Object} options
  *
  */
 var EditControl = function (options) {

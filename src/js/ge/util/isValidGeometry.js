@@ -3,7 +3,7 @@
  * 
  * Indicates if the given geometry is valid
  * 
- * @param {object} geometry tested geometry
+ * @param {Object} geometry tested geometry
  * 
  * @return {boolean}
  */

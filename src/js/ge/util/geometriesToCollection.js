@@ -4,9 +4,9 @@
  * Converts an array of geometries to a geometry collection (MultiPoint, MultiLineString,
  * MultiPolygon, GeometryCollection).
  * 
- * @param {array} geometries
+ * @param {Array} geometries
  * 
- * @return {object}
+ * @return {Object}
  */
 var geometriesToCollection = function (geometries) {
 

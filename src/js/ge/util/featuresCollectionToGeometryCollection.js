@@ -7,7 +7,7 @@ var geometriesToCollection = require('./geometriesToCollection.js');
  * 
  * @param {ol.Collection} featuresCollection
  * 
- * @return {object}
+ * @return {Object}
  * 
  */
 var featuresCollectionToGeometryCollection = function (featuresCollection) {
