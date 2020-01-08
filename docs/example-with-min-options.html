@@ -33,7 +33,7 @@
             var geometryEditor = $(".geometry").data('editor');
             var map = geometryEditor.getMap();
 
-            map.on('change:geometry', function (e) {
+            map.on('change:geometries', function (e) {
                 var geoJSON = e.geometry;
                 var textResult;
                 if (!geoJSON) {

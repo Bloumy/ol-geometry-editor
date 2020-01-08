@@ -109,17 +109,21 @@ EditControl.prototype.addInteractions = function () {
     };
 
 
-    var modifyEnd = function (e) {
-        this.getMap().dispatchEvent($.extend(e, { type: "draw:edited" }));
-    }.bind(this);
-
-
     this.getInteractions().forEach(function (interaction) {
-        interaction.on('modifyend', modifyEnd);
-        interaction.on('translateend', modifyEnd);
-
         this.getMap().addInteraction(interaction);
     }.bind(this));
+
+    translateInteraction.on('translatestart',function(){
+        modifyInteractionBasic.setActive(false);
+        modifyInteractionSquare.setActive(false);
+        modifyInteractionBox.setActive(false);
+    });
+
+    translateInteraction.on('translateend',function(){
+        modifyInteractionBasic.setActive(true);
+        modifyInteractionSquare.setActive(true);
+        modifyInteractionBox.setActive(true);
+    });
 
 };
 

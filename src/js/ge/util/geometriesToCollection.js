@@ -1,7 +1,12 @@
-
 /**
- * Converts an array of geometries to a collection (MultiPoint, MultiLineString,
+ * geometriesToCollection
+ * 
+ * Converts an array of geometries to a geometry collection (MultiPoint, MultiLineString,
  * MultiPolygon, GeometryCollection).
+ * 
+ * @param {array} geometries
+ * 
+ * @return {object}
  */
 var geometriesToCollection = function (geometries) {
 

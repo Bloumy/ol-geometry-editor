@@ -84,12 +84,7 @@ RemoveControl.prototype.addInteraction = function () {
         return removeInteraction;
     };
 
-    removeInteraction.on('deleteend', function (e) {
-        this.getMap().dispatchEvent($.extend(e, {type: "draw:deleted"}));
-    }.bind(this));
-
     this.getMap().addInteraction(removeInteraction);
-
 };
 
 module.exports = RemoveControl;

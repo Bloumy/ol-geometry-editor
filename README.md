@@ -87,8 +87,9 @@ See the list of options below.
     });
 
     // When the geometry change
-    map.on('change:geometry',function(e){
-        console.log(e.geometry);
+    map.on('change:geometries',function(e){
+        console.log(e.geometries);
+        console.log(e.geojson);
     });
 
 ```

@@ -72,6 +72,11 @@ DrawControl.prototype.setActive = function (active) {
     }
 };
 
+
+DrawControl.prototype.isActive = function () {
+    return this.active;
+};
+
 DrawControl.prototype.addInteraction = function () {
 
     var drawParams = {
@@ -104,13 +109,6 @@ DrawControl.prototype.addInteraction = function () {
         //        e.feature.setStyle(this.style);
     }.bind(this));
 
-    this.featuresCollection.on('add', function (e) {
-
-        this.getMap().dispatchEvent($.extend(e, {
-            type: this.eventBaseName + ':created'
-        }));
-
-    }.bind(this));
 
     this.getInteraction = function () {
         return drawInteraction;

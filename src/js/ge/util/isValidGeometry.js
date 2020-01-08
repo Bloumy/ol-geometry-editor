@@ -1,10 +1,13 @@
-
 /**
+ * isValidGeometry
+ * 
  * Indicates if the given geometry is valid
- * @param {String} geometryType tested geometry type
+ * 
+ * @param {object} geometry tested geometry
+ * 
+ * @return {boolean}
  */
 var isValidGeometry = function (geometry) {
-
 
     var isGeometryOK = function (geometry) {
         // attribute 'type' is here ?
@@ -43,18 +46,17 @@ var isValidGeometry = function (geometry) {
 
     if (geometry.geometries) {
         for (var i in geometry.geometries) {
-           if(!isGeometryOK(geometry.geometries[i])){
-            return false;
-           }
+            if (!isGeometryOK(geometry.geometries[i])) {
+                return false;
+            }
         }
-    }else{
-        if(!isGeometryOK(geometry)){
+    } else {
+        if (!isGeometryOK(geometry)) {
             return false;
         }
     }
 
     return true;
-
 };
 
 module.exports = isValidGeometry;

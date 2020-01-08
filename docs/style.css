@@ -13,6 +13,11 @@ button.btn.help-button{
     top: 35px;
     z-index: 10;
 }
+
 pre.help-content{
     margin-top: 35px;
+}
+
+.container.index .well{
+    height: 150px;
 }

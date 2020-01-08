@@ -1,4 +1,8 @@
-
+/**
+ * getDefaultStyle
+ * 
+ * @return {ol.style.Style}
+ */
 var getDefaultStyle = function () {
 
 
@@ -7,7 +11,7 @@ var getDefaultStyle = function () {
     });
 
     var stroke = new ol.style.Stroke({
-        color: '#CC9933',
+        color: '#3399CC',
         width: 1.25
     });
 
@@ -26,12 +30,4 @@ var getDefaultStyle = function () {
     ];
 };
 
-
-
-var defaultStyleSketchFunction = function (feature, resolution, type) {
-
-    return getDefaultStyle();
-
-};
-
-module.exports = defaultStyleSketchFunction;
+module.exports = getDefaultStyle;

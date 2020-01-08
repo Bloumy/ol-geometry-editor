@@ -1,16 +1,18 @@
-
 var DrawToolsControl = require('./controls/DrawToolsControl');
 var TileLayerSwitcher = require('./controls/TileLayerSwitcherControl');
 var ExportToPngControl = require('./controls/ExportToPngControl');
+var ShowGeometryControl = require('./controls/ShowGeometryControl');
 
 var guid = require('./util/guid');
-var featureCollectionToGeometry = require('./util/featureCollectionToGeometry.js');
+
 var isSingleGeometryType = require('./util/isSingleGeometryType.js');
 var defaultStyleLayerFunction = require('./util/defaultStyleLayerFunction');
 
+var fitViewToFeaturesCollection = require('./util/fitViewToFeaturesCollection');
+
+var isValidGeometryType = require('./util/isValidGeometryType');
+
 var TileLayer = require('./models/TileLayer');
-
-
 
 
 /**
@@ -25,42 +27,39 @@ var Viewer = function (options) {
         mapProjection: "EPSG:3857"
     };
 
-    $.extend(this.settings, options); // deep copy
+    $.extend(this.settings, options);
 
-    this.map = null;
-};
+    this.map = this.createMap(this.settings);
 
-/**
- * Initialise a map
- * @param {Object} params - params are :
- *
- * @param {string|int} params.height - map height
- * @param {string|int} params.width - map width
- * @param {float} params.lat - latitude at start for map center
- * @param {float} params.lon - longitude at start for map center
- * @param {float} params.zoom - map zoom
- *
- * @param {Object[]} params.tileLayers - array of layer configurations
- * @param {string} params.tileLayers[].url - url
- * @param {string} params.tileLayers[].attribution - attribution
- * @param {string} params.tileLayers[].title - titre
- *
- */
-Viewer.prototype.initMap = function (params) {
-
-    // create map div
-    var mapTargetId = 'map-' + guid();
-    var $mapDiv = $('<div id="' + mapTargetId + '"></div>');
-    $mapDiv.addClass('map');
-    $mapDiv.css('width', params.width);
-    $mapDiv.css('height', params.height);
-    $mapDiv.insertAfter(params.dataElement);
-
-    // create map
-    this.map = this.createMap(mapTargetId, params);
-
-    this.layers = this.createLayersFromTileLayersConfig(params.tileLayers);
+    this.layers = this.createLayersFromTileLayersConfig(this.settings.tileLayers);
     this.addLayersToMap(this.layers);
+
+
+    // init layer for geometries to show
+    this.geometryLayer = this.initGeometriesLayer();
+
+    if (this.settings.geometryType && isValidGeometryType(this.settings.geometryType)) {
+        this.showGeometryControl = this.initShowGeometryControl();
+    }
+
+    // init tileLayerSwitcher
+    if (this.settings.tileLayerSwitcher) {
+        this.initTileLayerSwitcher(this.settings);
+    }
+
+    // init geometries editable
+    if (this.settings.editable) {
+        this.drawToolsControls = this.initDrawToolsControl({
+            layer: this.geometryLayer,
+            geometryType: this.settings.geometryType,
+            translations: this.settings.translations
+        });
+    }
+
+    // export to image control
+    if (this.settings.allowCapture) {
+        this.initExportToPngControl();
+    }
 
 };
 
@@ -69,24 +68,27 @@ Viewer.prototype.getMap = function () {
     return this.map;
 };
 
-/**
- * Add control to map
- * @param {ol.control} control
- */
-Viewer.prototype.addControl = function (control) {
-    this.getMap().addControl(control);
-};
-
 
 /**
- * Create map
- * @param {string} target - Emplacement cible (id)
- * @param {object} options - options (zoom, minZooom, maxZoom, lon, lat)
+ * Create a map
+ * @param {Object} options - params are :
  *
- * @return {ol.Map}
+ * @param {string|int} options.height - map height
+ * @param {string|int} options.width - map width
+ * @param {float} options.lat - latitude at start for map center
+ * @param {float} options.lon - longitude at start for map center
+ * @param {float} options.zoom - map zoom
+ *
  */
-Viewer.prototype.createMap = function (target, options) {
+Viewer.prototype.createMap = function (options) {
     options = options || {};
+
+    var target = 'map-' + guid();
+    var $mapDiv = $('<div id="' + target + '"></div>');
+    $mapDiv.addClass('map');
+    $mapDiv.css('width', options.width);
+    $mapDiv.css('height', options.height);
+    $mapDiv.insertAfter(options.dataElement);
 
     return new ol.Map({
         target: target,
@@ -104,19 +106,65 @@ Viewer.prototype.createMap = function (target, options) {
 
 };
 
+/**
+ * Init draw layer
+ */
+Viewer.prototype.initGeometriesLayer = function () {
+    var geometryFeaturesCollection = new ol.Collection();
+    var geometryLayer = this.createVectorLayer(geometryFeaturesCollection);
+
+    this.getMap().addLayer(geometryLayer);
+
+    return geometryLayer;
+};
 
 /**
- * init TreeLayerSwitcher
- *
- * @param {array|null} switchableLayers
- * @param {array} tileCoordinates
- * @param {string|int} defaultSwitchableTile
- *
- * return TreeLayerSwitcher
+ * Init control export to png
  */
-Viewer.prototype.initTreeLayerSwitcher = function (params) {
-    var tileLayerSwitcherControl = this.addTileLayerSwitcher(this.layers, params);
+Viewer.prototype.initShowGeometryControl = function () {
+
+    var showGeometryControl = new ShowGeometryControl({
+        geometryType: this.settings.geometryType,
+        layer: this.geometryLayer,
+        targetElement: this.settings.dataElement,
+        hide: this.settings.hide,
+        dataProjection: this.settings.dataProjection,
+        precision: this.settings.precision
+    });
+
+    showGeometryControl.on('set:geometries', function (e) {
+        if (this.settings.centerOnResults) {
+            fitViewToFeaturesCollection(this.getMap(), this.geometryLayer.getSource().getFeaturesCollection());
+        }
+        this.getMap().dispatchEvent($.extend(e, { type: 'change:geometries' }));
+    }.bind(this));
+
+    showGeometryControl.on('error', function (e) {
+        this.getMap().dispatchEvent({ type: 'change:geometries', geojson: "{}", geometries: [] });
+        console.log(e.message);
+    });
+
+    this.getMap().addControl(showGeometryControl);
+
+    return showGeometryControl;
+};
+
+
+/**
+ * init TileLayerSwitcher
+ *
+ * @param {object} params parametres
+ * @param {object} params.tileCoordinates coordonnées pour l'image tuile
+ * @param {object} params.switchableLayers Mapping des couches pour chaque tuile en fonction du title
+ * @param {object} params.defaultSwitchableTile Mapping des couches pour chaque tuile en fonction du title
+ *
+ * @return {TreeLayerSwitcher}
+ */
+Viewer.prototype.initTileLayerSwitcher = function (params) {
+    var tileLayerSwitcherControl = this.createTileLayerSwitcher(this.layers, params);
+    this.getMap().addControl(tileLayerSwitcherControl);
     tileLayerSwitcherControl.setFondCartoByTilePosition(params.defaultSwitchableTile);
+
     return tileLayerSwitcherControl;
 };
 
@@ -125,7 +173,43 @@ Viewer.prototype.initTreeLayerSwitcher = function (params) {
  */
 Viewer.prototype.initExportToPngControl = function () {
     var exportToPngControl = new ExportToPngControl();
-    this.addControl(exportToPngControl);
+    this.getMap().addControl(exportToPngControl);
+};
+
+
+/**
+ * Init draw controls
+ *
+ * @private
+ */
+Viewer.prototype.initDrawToolsControl = function (params) {
+
+    var drawToolsControl = new DrawToolsControl({
+        layer: params.layer,
+        type: params.geometryType,
+        multiple: !isSingleGeometryType(params.geometryType),
+        translations: params.translations,
+        precision: this.settings.precision,
+        dataProjection: this.settings.dataProjection
+    });
+
+    this.getMap().addControl(drawToolsControl);
+
+    drawToolsControl.on('draw:change', function (e) {
+        if (this.settings.centerOnResults && e.originType !== "draw:removed") {
+            fitViewToFeaturesCollection(this.getMap(), this.geometryLayer.getSource().getFeaturesCollection());
+        }
+
+        this.getMap().dispatchEvent($.extend(e, { type: 'change:geometries' }));
+
+        // modifier le contenu de l'input
+        if (this.settings.geometryType && isValidGeometryType(this.settings.geometryType)) {
+            this.showGeometryControl.setRawData(e.geojson);
+        }
+    }.bind(this));
+
+
+    return drawToolsControl;
 };
 
 
@@ -143,180 +227,31 @@ Viewer.prototype.addLayersToMap = function (layers) {
     }
 };
 
-/**
- * Ajoute des features dans une feature collection à partir d'un tableau de géométries GeoJson
- *
- * @param {ol.Collection} featuresCollection
- * @param {array} geometries - simple geometries
- */
-Viewer.prototype.setGeometries = function (featuresCollection, geometries) {
-    for (var i in geometries) {
-        var geom;
-
-        switch (geometries[i].type) {
-            case "Point":
-                geom = new ol.geom.Point(geometries[i].coordinates);
-                break;
-            case "LineString":
-                geom = new ol.geom.LineString(geometries[i].coordinates);
-                break;
-            case "Polygon":
-                geom = new ol.geom.Polygon(geometries[i].coordinates);
-                break;
-            case "MultiPoint":
-                geom = new ol.geom.MultiPoint(geometries[i].coordinates);
-                break;
-            case "MultiLineString":
-                geom = new ol.geom.MultiLineString(geometries[i].coordinates);
-                break;
-            case "MultiPolygon":
-                geom = new ol.geom.MultiPolygon(geometries[i].coordinates);
-                break;
-        }
-
-        var feature = new ol.Feature({
-            geometry: geom.transform(this.settings.dataProjection, this.settings.mapProjection)
-        });
-
-        var type = this.settings.geometryType;
-
-        if (type === "Geometry") {
-            type = geometries[i].type;
-        }
-
-        feature.set('type', type);
-        featuresCollection.push(feature);
-    }
-    this.getMap().dispatchEvent('set:geometries');
-};
-
-/**
- * Recentre la vue de la carte sur la collection de features
- * @param {ol.Collection} featuresCollection
- */
-Viewer.prototype.fitViewToFeaturesCollection = function (featuresCollection) {
-    var geometries = [];
-    featuresCollection.forEach(function (feature) {
-        geometries.push(feature.getGeometry());
-    });
-
-    this.getMap().getView().fit((new ol.geom.GeometryCollection(geometries)).getExtent(), {
-        size: this.getMap().getSize(),
-        duration: 100
-    });
-};
-
 
 /**
  *
  * @param {ol.Collection} featuresCollection
  * @returns {ol.layer.Vector}
  */
-Viewer.prototype.addLayer = function (featuresCollection) {
+Viewer.prototype.createVectorLayer = function (featuresCollection) {
     var layer = new ol.layer.Vector({
         source: new ol.source.Vector({
             features: featuresCollection
         }),
         style: defaultStyleLayerFunction
     });
-
-    this.getMap().addLayer(layer);
-
     return layer;
 };
 
-/**
- *
- * @returns {ol.Collection}
- */
-Viewer.prototype.createFeaturesCollection = function () {
-    return new ol.Collection();
-};
-
-/**
- * @description Supprime les features de la collection de feature
- * @param {ol.Collection} featuresCollection - Collection de features
- */
-Viewer.prototype.removeFeatures = function (featuresCollection) {
-    featuresCollection.clear();
-};
-
-/**
- * Get output geometry type
- * @returns {String}
- */
-Viewer.prototype.getGeometryType = function () {
-    return this.settings.geometryType;
-};
-
-/**
- * @description Ajoute les controles de dessin
- *
- * @param {object} drawOptions - (featuresCollection, geometryType)
- */
-Viewer.prototype.addDrawToolsControl = function (drawOptions) {
-
-    var drawControlOptions = {
-        layer: drawOptions.layer,
-        // featuresCollection: drawOptions.featuresCollection,
-        type: drawOptions.geometryType,
-        multiple: !isSingleGeometryType(drawOptions.geometryType),
-        translations: drawOptions.translations
-    };
-
-    var drawToolsControl = new DrawToolsControl(drawControlOptions);
-
-    this.getMap().on('set:geometries', function () {
-        drawToolsControl.deactivateControls();
-    });
-
-    this.addControl(drawToolsControl);
-
-    return drawToolsControl;
-};
-
-
-/**
- * addDrawEvents
- * @param {Object} events ({fn} onDrawCreated, {fn} onDrawModified, {fn} onDrawDeleted)
- */
-Viewer.prototype.addDrawToolsEvents = function (events) {
-    this.getMap().on('draw:created', events.onDrawCreated);
-    this.getMap().on('draw:edited', events.onDrawModified);
-    this.getMap().on('draw:deleted', events.onDrawDeleted);
-};
-
-/**
- *
- * @param {ol.Collection} featuresCollection
- * @returns {ol.Geometry}
- */
-Viewer.prototype.getGeometryByFeaturesCollection = function (featuresCollection, precision) {
-
-    var featuresGeoJson = (new ol.format.GeoJSON()).writeFeatures(
-        featuresCollection.getArray(),
-        {
-            featureProjection: this.settings.mapProjection,
-            dataProjection: this.settings.dataProjection,
-            decimals: precision
-        });
-
-    return featureCollectionToGeometry(JSON.parse(featuresGeoJson));
-
-};
-
-/**
- *
- * @param {ol.Collection} featuresCollection
- * @returns {number}
- */
-Viewer.prototype.getFeaturesCount = function (featuresCollection) {
-    return featuresCollection.getLength();
-};
 
 
 /**
  * tileLayers to [ol.layer.Layer]
+ *
+ * @param {Array} tileLayersConfig - array of layer configurations
+ * @param {string} tileLayersConfig[].url - url
+ * @param {string} tileLayersConfig[].attribution - attribution
+ * @param {string} tileLayersConfig[].title - titre
  *
  * @private
  */
@@ -359,7 +294,7 @@ Viewer.prototype.createLayersFromTileLayersConfig = function (tileLayersConfig) 
  * @param {object} params.tileCoordinates coordonnées pour l'image tuile
  * @param {object} params.switchableLayers Mapping des couches pour chaque tuile en fonction du title
  */
-Viewer.prototype.addTileLayerSwitcher = function (layers, params) {
+Viewer.prototype.createTileLayerSwitcher = function (layers, params) {
 
     var tileLayerSwitcherControl = new TileLayerSwitcher({
         tileCoord: params.tileCoordinates
@@ -409,8 +344,6 @@ Viewer.prototype.addTileLayerSwitcher = function (layers, params) {
     tileLayerSwitcherControl.on('change:tile', function (e) {
         this.getMap().dispatchEvent({ type: 'change:tile', tile: e.tile });
     }.bind(this));
-
-    this.addControl(tileLayerSwitcherControl);
 
 
     return tileLayerSwitcherControl;

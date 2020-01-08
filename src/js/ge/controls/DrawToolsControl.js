@@ -7,6 +7,9 @@ var TranslateControl = require('./TranslateControl');
 var RemoveControl = require('./RemoveControl');
 var defaultStyleDrawFunction = require('../util/defaultStyleDrawFunction');
 
+var serializeGeometry = require('../util/serializeGeometry');
+var getGeometryByFeaturesCollection = require('../util/getGeometryByFeaturesCollection');
+var geometryToSimpleGeometries = require('../util/geometryToSimpleGeometries');
 
 
 /**
@@ -27,6 +30,8 @@ var DrawToolsControl = function (options) {
     this.type = options.type || "Geometry";
     this.multiple = options.multiple || false;
     this.style = options.style;
+    this.dataProjection = options.dataProjection;
+    this.precision = options.precision;
 
     this.controls = [];
 
@@ -53,16 +58,44 @@ DrawToolsControl.prototype.initControl = function () {
     // this.addTranslateControl();
     this.addRemoveControl();
 
+
+
+    var handleDrawChange = function (e) {
+
+        var geometry = getGeometryByFeaturesCollection(this.layer.getSource().getFeaturesCollection(), {
+            precision: this.precision,
+            dataProjection: this.dataProjection,
+            mapProjection: this.getMap().getView().getProjection()
+        });
+
+        var geometryGeoJson = "";
+        var geometries = null;
+
+        if (geometry) {
+            geometryGeoJson = serializeGeometry(geometry, this.type);
+
+            geometries = geometryToSimpleGeometries(geometry);
+        }
+
+        this.dispatchEvent({ type: 'draw:change', originType: e.type, geometries: geometries, geojson: geometryGeoJson });
+
+    }.bind(this);
+
+
+    this.on('draw:added', handleDrawChange);
+    this.on('draw:edited', handleDrawChange);
+    this.on('draw:removed', handleDrawChange);
+
 };
 
 
 DrawToolsControl.prototype.addDrawControls = function () {
     if (this.type === "Geometry") {
-        this.addDrawControl({type: "MultiPoint", multiple: true, title: this.translations.draw.multipoint});
-        this.addDrawControl({type: "MultiLineString", multiple: true, title: this.translations.draw.multilinestring});
-        this.addDrawControl({type: "MultiPolygon", multiple: true, title: this.translations.draw.multipolygon});
+        this.addDrawControl({ type: "MultiPoint", multiple: true, title: this.translations.draw.multipoint });
+        this.addDrawControl({ type: "MultiLineString", multiple: true, title: this.translations.draw.multilinestring });
+        this.addDrawControl({ type: "MultiPolygon", multiple: true, title: this.translations.draw.multipolygon });
     } else {
-        this.addDrawControl({type: this.type, multiple: this.multiple, title: this.translations.draw[this.type.toLowerCase()]});
+        this.addDrawControl({ type: this.type, multiple: this.multiple, title: this.translations.draw[this.type.toLowerCase()] });
     }
 
 };
@@ -74,8 +107,8 @@ DrawToolsControl.prototype.addDrawControl = function (options) {
         featuresCollection: this.featuresCollection,
         type: options.type,
         target: this.element,
-        style: function(feature, resolution){
-            return defaultStyleDrawFunction(feature,resolution, options.type);
+        style: function (feature, resolution) {
+            return defaultStyleDrawFunction(feature, resolution, options.type);
         },
         multiple: options.multiple,
         title: options.title
@@ -87,6 +120,18 @@ DrawToolsControl.prototype.addDrawControl = function (options) {
     }.bind(this));
 
     this.getMap().addControl(drawControl);
+
+    drawControl.getInteraction().on('drawend', function (e) {
+
+        if (drawControl.isActive()) {
+
+            // laisser le temps au croquis d'ajouter la feature  à la couche
+            setTimeout(function () {
+                this.dispatchEvent({ type: "draw:added" });
+            }.bind(this), 0);
+        }
+    }.bind(this));
+
     this.controls.push(drawControl);
 };
 
@@ -104,24 +149,43 @@ DrawToolsControl.prototype.addEditControl = function () {
     }.bind(this));
 
     this.getMap().addControl(editControl);
-    this.controls.push(editControl);
-};
 
-DrawToolsControl.prototype.addTranslateControl = function () {
-    var translateControl = new TranslateControl({
-        featuresCollection: this.featuresCollection,
-        target: this.element,
-        title: this.translations.translate[this.type.toLowerCase()]
-    });
+    var modifyEnd = function () {
 
-    translateControl.on('translate:active', function () {
-        this.deactivateControls(translateControl);
-        this.dispatchEvent('tool:active');
+        // laisser le temps au croquis de mettre à jour la feature dans la couche
+        setTimeout(function () {
+            this.dispatchEvent({ type: "draw:edited" });
+        }.bind(this), 0);
+    }.bind(this);
+
+    editControl.getInteractions().forEach(function (interaction) {
+        interaction.on('modifyend', modifyEnd);
+        interaction.on('translateend', modifyEnd);
+
     }.bind(this));
 
-    this.getMap().addControl(translateControl);
-    this.controls.push(translateControl);
+    
+
+    this.controls.push(editControl);
+
+
 };
+
+// DrawToolsControl.prototype.addTranslateControl = function () {
+//     var translateControl = new TranslateControl({
+//         featuresCollection: this.featuresCollection,
+//         target: this.element,
+//         title: this.translations.translate[this.type.toLowerCase()]
+//     });
+
+//     translateControl.on('translate:active', function () {
+//         this.deactivateControls(translateControl);
+//         this.dispatchEvent('tool:active');
+//     }.bind(this));
+
+//     this.getMap().addControl(translateControl);
+//     this.controls.push(translateControl);
+// };
 
 DrawToolsControl.prototype.addRemoveControl = function () {
     var removeControl = new RemoveControl({
@@ -135,7 +199,17 @@ DrawToolsControl.prototype.addRemoveControl = function () {
         this.dispatchEvent('tool:active');
     }.bind(this));
 
+
     this.getMap().addControl(removeControl);
+
+    removeControl.getInteraction().on('deleteend', function () {
+        this.dispatchEvent({ type: "draw:removed" });
+        // laisser le temps au croquis de retirer la feature de la couche
+        setTimeout(function () {
+            this.dispatchEvent({ type: "draw:removed" });
+        }.bind(this), 0);
+    }.bind(this));
+
     this.controls.push(removeControl);
 
 };
