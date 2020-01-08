@@ -18,7 +18,7 @@ var geometryToSimpleGeometries = require('../util/geometryToSimpleGeometries');
  * @constructor
  * @extends {ol.control.Control}
  *
- * @param {object} options
+ * @param {Object} options
  * @param {String} options.type le type d'élément dessiné ('Text', 'Point', 'LineString' ou 'Polygon')
  *
  */
@@ -203,7 +203,6 @@ DrawToolsControl.prototype.addRemoveControl = function () {
     this.getMap().addControl(removeControl);
 
     removeControl.getInteraction().on('deleteend', function () {
-        this.dispatchEvent({ type: "draw:removed" });
         // laisser le temps au croquis de retirer la feature de la couche
         setTimeout(function () {
             this.dispatchEvent({ type: "draw:removed" });
